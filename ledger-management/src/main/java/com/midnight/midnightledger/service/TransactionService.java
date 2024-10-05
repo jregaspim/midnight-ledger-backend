@@ -18,9 +18,13 @@ public class TransactionService {
         transactionRepository.save(transaction);
     }
 
-    public List<Transaction> getAllTransaction(TransactionType transactionType){
+    public List<Transaction> getAllTransactionByTransactionType(TransactionType transactionType){
 
         return transactionRepository.findByTransactionType(transactionType).get();
+    }
+
+    public List<Transaction> getAllTransaction(){
+        return transactionRepository.findAll();
     }
 
     public void deleteTransaction(Long id) {

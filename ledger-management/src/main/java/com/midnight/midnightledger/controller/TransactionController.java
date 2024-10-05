@@ -18,8 +18,13 @@ public class TransactionController {
     TransactionService transactionService;
 
     @GetMapping("/{transactionType}")
-    public ResponseEntity<List<Transaction>> getAllTransaction(@PathVariable String transactionType) {
-        return ResponseEntity.ok(transactionService.getAllTransaction(TransactionType.valueOf(transactionType)));
+    public ResponseEntity<List<Transaction>> getAllTransactionByTransactionType(@PathVariable String transactionType) {
+        return ResponseEntity.ok(transactionService.getAllTransactionByTransactionType(TransactionType.valueOf(transactionType)));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Transaction>> getAllTransaction() {
+        return ResponseEntity.ok(transactionService.getAllTransaction());
     }
 
     @PostMapping
