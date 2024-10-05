@@ -1,7 +1,7 @@
-package midnightledger.service;
+package com.midnight.midnightledger.service;
 
-import midnightledger.model.Budget;
-import midnightledger.repository.BudgetRepository;
+import com.midnight.midnightledger.model.Budget;
+import com.midnight.midnightledger.repository.BudgetRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

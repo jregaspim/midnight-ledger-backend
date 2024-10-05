@@ -1,7 +1,7 @@
-package midnightledger.controller;
+package com.midnight.midnightledger.controller;
 
-import midnightledger.model.Budget;
-import midnightledger.service.BudgetService;
+import com.midnight.midnightledger.model.Budget;
+import com.midnight.midnightledger.service.BudgetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

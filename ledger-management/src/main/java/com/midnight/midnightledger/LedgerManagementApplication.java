@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class TransactionServiceApplication {
+public class LedgerManagementApplication {
     public static void main(String[] args) {
-        SpringApplication.run(TransactionServiceApplication.class, args);
+        SpringApplication.run(LedgerManagementApplication.class, args);
     }
 }
