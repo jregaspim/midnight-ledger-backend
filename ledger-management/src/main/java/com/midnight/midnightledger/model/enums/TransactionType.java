@@ -2,5 +2,5 @@ package com.midnight.midnightledger.model.enums;
 
 public enum TransactionType {
 
-    INCOME , EXPENSES
+    INCOME , EXPENSES, SAVINGS
 }

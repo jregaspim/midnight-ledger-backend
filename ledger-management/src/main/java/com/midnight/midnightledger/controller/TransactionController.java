@@ -17,22 +17,32 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:4200")
 public class TransactionController {
 
+    private final TransactionService transactionService;
+
     @Autowired
-    TransactionService transactionService;
+    public TransactionController(TransactionService transactionService) {
+        this.transactionService = transactionService;
+    }
 
     @GetMapping("/{transactionType}")
-    public ResponseEntity<List<Transaction>> getAllTransactionByTransactionType(@PathVariable String transactionType) {
-        return ResponseEntity.ok(transactionService.getAllTransactionByTransactionType(TransactionType.valueOf(transactionType)));
+    public ResponseEntity<List<Transaction>> getAllTransactionsByType(@PathVariable String transactionType) {
+        try {
+            TransactionType type = TransactionType.valueOf(transactionType.toUpperCase());
+            return ResponseEntity.ok(transactionService.getAllTransactionByTransactionType(type));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // handle invalid transaction type
+        }
     }
 
     @GetMapping
-    public ResponseEntity<List<Transaction>> getAllTransaction() {
+    public ResponseEntity<List<Transaction>> getAllTransactions() {
         return ResponseEntity.ok(transactionService.getAllTransaction());
     }
 
     @PostMapping
-    public void saveTransaction(@RequestBody TransactionRequest transaction){
+    public ResponseEntity<Void> saveTransaction(@RequestBody TransactionRequest transaction) {
         transactionService.saveTransaction(transaction);
+        return ResponseEntity.status(201).build(); // return 201 Created
     }
 
     @GetMapping("/year/{year}")
@@ -47,15 +57,18 @@ public class TransactionController {
             @RequestParam("year") int year,
             @RequestParam("month") int month) {
 
-        Map<String, BigDecimal> monthlyTransaction = transactionService.getTransactionsForYearAndMonth(transactionType,year, month);
+        Map<String, BigDecimal> monthlyTransaction = transactionService.getTransactionsForYearAndMonth(transactionType, year, month);
         return ResponseEntity.ok(monthlyTransaction);
     }
 
+    @GetMapping("/top/{transactionType}")
+    public ResponseEntity<Map<String, BigDecimal>> getTotalPerCategories(@PathVariable String transactionType) {
+        return ResponseEntity.ok(transactionService.getTotalPerCategories(transactionType));
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.noContent().build();
     }
-
 }

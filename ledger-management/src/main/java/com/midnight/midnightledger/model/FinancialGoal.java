@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,5 +34,9 @@ public class FinancialGoal {
 
     @Column(name = "deadline", nullable = false)
     private LocalDate deadline;
+
+    @OneToMany(mappedBy = "financialGoal", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SavingProgress> savingProgresses;
+
 
 }

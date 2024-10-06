@@ -2,7 +2,6 @@ package com.midnight.midnightledger.service;
 
 import com.midnight.midnightledger.model.Transaction;
 import com.midnight.midnightledger.model.dto.request.TransactionRequest;
-import com.midnight.midnightledger.model.dto.response.MonthlyTransactionResponse;
 import com.midnight.midnightledger.model.enums.ExpenseCategory;
 import com.midnight.midnightledger.model.enums.IncomeCategory;
 import com.midnight.midnightledger.model.enums.TransactionType;
@@ -19,11 +18,14 @@ import java.util.Map;
 @Service
 public class TransactionService {
 
+    private final TransactionRepository transactionRepository;
+
     @Autowired
-    TransactionRepository transactionRepository;
+    public TransactionService(TransactionRepository transactionRepository) {
+        this.transactionRepository = transactionRepository;
+    }
 
-    public void saveTransaction(TransactionRequest transactionRequest){
-
+    public void saveTransaction(TransactionRequest transactionRequest) {
         Transaction transaction = Transaction.builder()
                 .amount(transactionRequest.getAmount())
                 .category(transactionRequest.getCategory())
@@ -36,12 +38,11 @@ public class TransactionService {
         transactionRepository.save(transaction);
     }
 
-    public List<Transaction> getAllTransactionByTransactionType(TransactionType transactionType){
-
-        return transactionRepository.findByTransactionType(transactionType).get();
+    public List<Transaction> getAllTransactionByTransactionType(TransactionType transactionType) {
+        return transactionRepository.findByTransactionType(transactionType).orElseThrow();
     }
 
-    public List<Transaction> getAllTransaction(){
+    public List<Transaction> getAllTransaction() {
         return transactionRepository.findAll();
     }
 
@@ -64,39 +65,41 @@ public class TransactionService {
             }
         });
 
-        Map<String, BigDecimal[]> monthlyIncomeExpensesData = new HashMap<>();
-        monthlyIncomeExpensesData.put("INCOME", monthlyIncome);
-        monthlyIncomeExpensesData.put("EXPENSES", monthlyExpenses);
-
-        return monthlyIncomeExpensesData;
+        return Map.of(
+                "INCOME", monthlyIncome,
+                "EXPENSES", monthlyExpenses
+        );
     }
 
     public Map<String, BigDecimal> getTransactionsForYearAndMonth(String transactionType, int year, int month) {
-        List<Transaction> transactions = transactionRepository.findByTransactionTypeYearAndMonth(TransactionType.valueOf(transactionType), year, month);
+        TransactionType type = getTransactionType(transactionType);
+        List<Transaction> transactions = transactionRepository.findByTransactionTypeYearAndMonth(type, year, month);
 
-        if(transactionType.equalsIgnoreCase("Expenses")) {
-            Map<String, BigDecimal> expenseMap = updateMonthlyDataValue(ExpenseCategory.getExpenseMap(), transactions);
-            System.out.println("Expense Map: " + expenseMap);
-            return expenseMap;
-        } else if(transactionType.equalsIgnoreCase("Income")) {
-            Map<String, BigDecimal> incomeMap = updateMonthlyDataValue(IncomeCategory.getIncomeMap(), transactions);
-            System.out.println("Income Map: " + incomeMap);
-            return incomeMap;
+        if (type == TransactionType.EXPENSES) {
+            return updateMonthlyDataValue(ExpenseCategory.getExpenseMap(), transactions);
+        } else if (type == TransactionType.INCOME) {
+            return updateMonthlyDataValue(IncomeCategory.getIncomeMap(), transactions);
         }
 
-        return null;
+        return Map.of(); // return empty map instead of null
+    }
+
+    public Map<String, BigDecimal> getTotalPerCategories(String transactionType) {
+        List<Transaction> transactions = transactionRepository.findByTransactionType(getTransactionType(transactionType)).orElseThrow();
+
+        Map<String, BigDecimal> categoryTotals = ExpenseCategory.getExpenseMap();
+
+        for (Transaction transaction : transactions) {
+            categoryTotals.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add);
+        }
+
+        return categoryTotals;
     }
 
     private Map<String, BigDecimal> updateMonthlyDataValue(Map<String, BigDecimal> monthlyMap, List<Transaction> transactions) {
-        System.out.println("Expense Map: " + monthlyMap);
-        for (Transaction transaction: transactions) {
-            System.out.println("Transaction: " + transaction);
-            String category = transaction.getCategory();
-            BigDecimal currentValue = monthlyMap.get(transaction.getCategory());
-            System.out.println("Current value: " + currentValue);
-            monthlyMap.put(category, currentValue.add(transaction.getAmount()));
+        for (Transaction transaction : transactions) {
+            monthlyMap.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add);
         }
-
         return monthlyMap;
     }
 
@@ -104,4 +107,11 @@ public class TransactionService {
         transactionRepository.deleteById(id);
     }
 
+    private TransactionType getTransactionType(String transactionType) {
+        try {
+            return TransactionType.valueOf(transactionType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid transaction type: " + transactionType);
+        }
+    }
 }
