@@ -1,4 +1,4 @@
-package com.midnight.midnightledger.model.dto;
+package com.midnight.midnightledger.model.dto.request;
 
 import lombok.Data;
 

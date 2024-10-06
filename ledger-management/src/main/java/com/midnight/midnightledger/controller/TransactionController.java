@@ -1,13 +1,16 @@
 package com.midnight.midnightledger.controller;
 
 import com.midnight.midnightledger.model.Transaction;
+import com.midnight.midnightledger.model.dto.request.TransactionRequest;
 import com.midnight.midnightledger.model.enums.TransactionType;
 import com.midnight.midnightledger.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -28,11 +31,26 @@ public class TransactionController {
     }
 
     @PostMapping
-    public void saveTransaction(@RequestBody Transaction transaction){
-        transaction.setAccountId(1001L); //temp set accountID
-        System.out.println(transaction);
+    public void saveTransaction(@RequestBody TransactionRequest transaction){
         transactionService.saveTransaction(transaction);
     }
+
+    @GetMapping("/year/{year}")
+    public ResponseEntity<Map<String, BigDecimal[]>> getTransactionsByYear(@PathVariable int year) {
+        Map<String, BigDecimal[]> monthlyIncomeExpensesData = transactionService.getTransactionsByYear(year);
+        return ResponseEntity.ok(monthlyIncomeExpensesData);
+    }
+
+    @GetMapping("/{transactionType}/by-date")
+    public ResponseEntity<Map<String, BigDecimal>> getTransactionsForYearAndMonth(
+            @PathVariable String transactionType,
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) {
+
+        Map<String, BigDecimal> monthlyTransaction = transactionService.getTransactionsForYearAndMonth(transactionType,year, month);
+        return ResponseEntity.ok(monthlyTransaction);
+    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {

@@ -1,9 +1,7 @@
 package com.midnight.midnightledger.controller;
 
-import com.midnight.midnightledger.model.Budget;
 import com.midnight.midnightledger.model.FinancialGoal;
-import com.midnight.midnightledger.model.dto.UpdateFinancialGoalRequest;
-import com.midnight.midnightledger.service.BudgetService;
+import com.midnight.midnightledger.model.dto.request.UpdateFinancialGoalRequest;
 import com.midnight.midnightledger.service.FinancialGoalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
