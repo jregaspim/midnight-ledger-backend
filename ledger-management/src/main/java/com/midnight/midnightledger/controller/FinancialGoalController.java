@@ -1,13 +1,17 @@
 package com.midnight.midnightledger.controller;
 
 import com.midnight.midnightledger.model.FinancialGoal;
+import com.midnight.midnightledger.model.SavingProgress;
 import com.midnight.midnightledger.model.dto.request.UpdateFinancialGoalRequest;
+import com.midnight.midnightledger.model.dto.response.SavingProgressResponse;
 import com.midnight.midnightledger.service.FinancialGoalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/financial-goal")
@@ -20,6 +24,11 @@ public class FinancialGoalController {
     @GetMapping
     public ResponseEntity<List<FinancialGoal>> getAllFinancialGoal() {
         return ResponseEntity.ok(financialGoalService.getAllFinancialGoal());
+    }
+
+    @GetMapping("/savings-progress")
+    public ResponseEntity<Map<String, Map<String, BigDecimal>>> getAllFinancialGoalTotal() {
+        return ResponseEntity.ok(financialGoalService.getAllFinancialGoalTotal());
     }
 
     @PostMapping

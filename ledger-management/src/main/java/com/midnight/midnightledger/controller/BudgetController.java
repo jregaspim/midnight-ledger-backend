@@ -21,6 +21,11 @@ public class BudgetController {
         return ResponseEntity.ok(budgetService.getAllBudget());
     }
 
+    @GetMapping("/total-spend-per-budget-category")
+    public ResponseEntity<List<Budget>> getTotalTransactionPerBudgetCategoryCurrentMonth() {
+        return ResponseEntity.ok(budgetService.getAllBudget());
+    }
+
     @PostMapping
     public void saveTransaction(@RequestBody Budget budget){
         budget.setAccountId(1001L); //temp set accountID

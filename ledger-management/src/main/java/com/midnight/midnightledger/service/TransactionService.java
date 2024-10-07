@@ -1,30 +1,34 @@
 package com.midnight.midnightledger.service;
 
+import com.midnight.midnightledger.model.Budget;
 import com.midnight.midnightledger.model.Transaction;
 import com.midnight.midnightledger.model.dto.request.TransactionRequest;
 import com.midnight.midnightledger.model.enums.ExpenseCategory;
 import com.midnight.midnightledger.model.enums.IncomeCategory;
 import com.midnight.midnightledger.model.enums.TransactionType;
+import com.midnight.midnightledger.repository.BudgetRepository;
 import com.midnight.midnightledger.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
 
+    private final BudgetRepository budgetRepository;
+
     @Autowired
-    public TransactionService(TransactionRepository transactionRepository) {
+    public TransactionService(TransactionRepository transactionRepository, BudgetRepository budgetRepository) {
         this.transactionRepository = transactionRepository;
+        this.budgetRepository = budgetRepository;
     }
 
+    @Transactional
     public void saveTransaction(TransactionRequest transactionRequest) {
         Transaction transaction = Transaction.builder()
                 .amount(transactionRequest.getAmount())
@@ -36,6 +40,19 @@ public class TransactionService {
                 .build();
 
         transactionRepository.save(transaction);
+
+        Optional<Budget> budgetOptional = budgetRepository.findByCategory(transactionRequest.getCategory());
+
+        if(budgetOptional.isPresent()) {
+            Budget budget = budgetOptional.get();
+
+            BigDecimal amountUsed = budget.getAmountUsed() != null ? budget.getAmountUsed() : BigDecimal.ZERO;
+
+            budget.setAmountUsed(amountUsed.add(transactionRequest.getAmount()));
+
+            budgetRepository.save(budget);
+        }
+
     }
 
     public List<Transaction> getAllTransactionByTransactionType(TransactionType transactionType) {
@@ -49,9 +66,11 @@ public class TransactionService {
     public Map<String, BigDecimal[]> getTransactionsByYear(int year) {
         BigDecimal[] monthlyIncome = new BigDecimal[12];
         BigDecimal[] monthlyExpenses = new BigDecimal[12];
+        BigDecimal[] monthlySavings = new BigDecimal[12];
 
         Arrays.fill(monthlyIncome, BigDecimal.ZERO);
         Arrays.fill(monthlyExpenses, BigDecimal.ZERO);
+        Arrays.fill(monthlySavings, BigDecimal.ZERO);
 
         List<Transaction> transactions = transactionRepository.findByYear(year);
 
@@ -62,12 +81,15 @@ public class TransactionService {
                 monthlyIncome[monthIndex] = monthlyIncome[monthIndex].add(transaction.getAmount());
             } else if (transaction.getTransactionType() == TransactionType.EXPENSES) {
                 monthlyExpenses[monthIndex] = monthlyExpenses[monthIndex].add(transaction.getAmount());
+            } else if (transaction.getTransactionType() == TransactionType.SAVINGS) {
+                monthlySavings[monthIndex] = monthlySavings[monthIndex].add(transaction.getAmount());
             }
         });
 
         return Map.of(
                 "INCOME", monthlyIncome,
-                "EXPENSES", monthlyExpenses
+                "EXPENSES", monthlyExpenses,
+                "SAVINGS", monthlySavings
         );
     }
 

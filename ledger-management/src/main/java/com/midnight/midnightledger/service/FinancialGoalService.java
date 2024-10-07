@@ -4,6 +4,7 @@ import com.midnight.midnightledger.model.Budget;
 import com.midnight.midnightledger.model.FinancialGoal;
 import com.midnight.midnightledger.model.SavingProgress;
 import com.midnight.midnightledger.model.Transaction;
+import com.midnight.midnightledger.model.dto.response.SavingProgressResponse;
 import com.midnight.midnightledger.model.enums.TransactionType;
 import com.midnight.midnightledger.repository.BudgetRepository;
 import com.midnight.midnightledger.repository.FinancialGoalRepository;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class FinancialGoalService {
@@ -35,6 +38,21 @@ public class FinancialGoalService {
 
     public List<FinancialGoal> getAllFinancialGoal(){
         return financialGoalRepository.findAll();
+    }
+
+    public  Map<String, Map<String, BigDecimal>> getAllFinancialGoalTotal(){
+        List<FinancialGoal> financialGoals = financialGoalRepository.findAll();
+
+        return financialGoals.stream()
+                .collect(Collectors.toMap(
+                        FinancialGoal::getGoalName,
+                        financialGoal -> financialGoal.getSavingProgresses().stream()
+                                .collect(Collectors.toMap(
+                                        progress -> progress.getDateAdded().format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                        SavingProgress::getAmount,
+                                        BigDecimal::add
+                                ))
+                ));
     }
 
     @Transactional

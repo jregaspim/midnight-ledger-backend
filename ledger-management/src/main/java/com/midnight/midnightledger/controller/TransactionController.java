@@ -48,6 +48,7 @@ public class TransactionController {
     @GetMapping("/year/{year}")
     public ResponseEntity<Map<String, BigDecimal[]>> getTransactionsByYear(@PathVariable int year) {
         Map<String, BigDecimal[]> monthlyIncomeExpensesData = transactionService.getTransactionsByYear(year);
+
         return ResponseEntity.ok(monthlyIncomeExpensesData);
     }
 
