@@ -1,42 +1,42 @@
 package com.midnight.midnightledger.controller;
 
-import com.midnight.midnightledger.model.Budget;
+import com.midnight.midnightledger.model.Debt;
 import com.midnight.midnightledger.model.User;
-import com.midnight.midnightledger.service.BudgetService;
+import com.midnight.midnightledger.service.DebtService;
 import com.midnight.midnightledger.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController
-@RequestMapping("/api/v1/budget")
 @RequiredArgsConstructor
-@Slf4j
-public class BudgetController {
+@RestController
+@RequestMapping("/api/v1/debts")
+public class DebtController {
 
-    private final BudgetService budgetService;
+    private final DebtService debtService;
 
     @GetMapping
-    public ResponseEntity<List<Budget>> getAllBudget() {
+    public ResponseEntity<List<Debt>> getAllDebts() {
         User currentUser = SecurityUtils.getCurrentUser();
 
         if (currentUser != null) {
-            return ResponseEntity.ok(budgetService.getAllBudget(currentUser.getId()));
+            return new ResponseEntity<>(debtService.getAllDebts(currentUser.getId()), HttpStatus.OK);
         }
+
         return ResponseEntity.status(401).build();
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveBudget(@RequestBody Budget budget){
+    public ResponseEntity<Void> createDebt(@RequestBody Debt debt) {
         User currentUser = SecurityUtils.getCurrentUser();
 
-        if (currentUser != null) {
-            budget.setAccountId(currentUser.getId());
-            budgetService.saveBudget(budget);
+        if(currentUser != null) {
+            debt.setAccountId(currentUser.getId());
+            debtService.saveDebt(debt);
             return ResponseEntity.status(201).build();
         }
 
@@ -44,15 +44,14 @@ public class BudgetController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBudget(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDebt(@PathVariable Long id) {
         User currentUser = SecurityUtils.getCurrentUser();
 
         if (currentUser != null) {
-            budgetService.deleteTransaction(id);
+            debtService.deleteDebt(id);
             return ResponseEntity.status(200).build();
         }
 
         return ResponseEntity.status(401).build();
     }
-
 }
