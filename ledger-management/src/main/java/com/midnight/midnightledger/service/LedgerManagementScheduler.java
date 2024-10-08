@@ -27,7 +27,7 @@ public class LedgerManagementScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 4 * * ?")
+    @Scheduled(cron = "0 0 4 1 * ?")
     public void executeBudgetValueReset() {
         System.out.println("Budget Service Amount Used Reset Schedule run....");
         budgetService.resetBudgetValue();

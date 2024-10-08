@@ -27,7 +27,7 @@ public class Budget {
     @Column(nullable = false)
     private String category;
 
-    @Column(name = "amount_used")
-    private BigDecimal amountUsed;
+    @Column(name = "amount_used", nullable = false)
+    private BigDecimal amountUsed = BigDecimal.ZERO;
 
 }

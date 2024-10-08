@@ -1,5 +1,6 @@
 package com.midnight.midnightledger.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.midnight.midnightledger.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -27,6 +28,7 @@ public class User implements UserDetails {
 
     private String email;
 
+    @JsonIgnore
     private String password;
 
     private String firstName;

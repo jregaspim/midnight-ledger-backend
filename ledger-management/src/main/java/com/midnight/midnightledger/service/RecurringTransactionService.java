@@ -3,9 +3,12 @@ package com.midnight.midnightledger.service;
 import com.midnight.midnightledger.exception.TransactionNotFoundException;
 import com.midnight.midnightledger.model.RecurringTransaction;
 import com.midnight.midnightledger.model.Transaction;
+import com.midnight.midnightledger.model.User;
 import com.midnight.midnightledger.model.enums.TransactionType;
 import com.midnight.midnightledger.repository.RecurringTransactionRepository;
 import com.midnight.midnightledger.repository.TransactionRepository;
+import com.midnight.midnightledger.util.SecurityUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -14,17 +17,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class RecurringTransactionService {
 
-    @Autowired
-    private RecurringTransactionRepository recurringTransactionRepository;
+    private final RecurringTransactionRepository recurringTransactionRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
 
-    public List<RecurringTransaction> getALlRecurringTransaction() {
-        return recurringTransactionRepository.findAll();
+    public List<RecurringTransaction> getALlRecurringTransaction(Long accountId) {
+        return recurringTransactionRepository.findAllByAccountId(accountId);
     }
 
     public List<RecurringTransaction> getTransactionsDueForExecution() {
@@ -55,7 +57,7 @@ public class RecurringTransactionService {
         System.out.println("Processing transaction: " + recurringTransaction.getTransactionName());
 
         Transaction transaction = Transaction.builder()
-                .accountId(1001L)
+                .accountId(recurringTransaction.getAccountId())
                 .amount(recurringTransaction.getAmount())
                 .transactionType(recurringTransaction.getTransactionType())
                 .category(recurringTransaction.getCategory())
@@ -69,8 +71,9 @@ public class RecurringTransactionService {
     }
 
 
-    public void saveRecurrentTransaction(RecurringTransaction transaction) {
-        transaction.setAccountId(1001L);
+    public void saveRecurrentTransaction(RecurringTransaction transaction, Long accountId) {
+
+        transaction.setAccountId(accountId);
         transaction.setTransactionType(TransactionType.EXPENSES);
         transaction.setTransactionDate(LocalDate.now());
         transaction.setStartDate(LocalDate.now());

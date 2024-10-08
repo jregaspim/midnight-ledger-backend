@@ -1,16 +1,14 @@
 package com.midnight.midnightledger.service;
 
-import com.midnight.midnightledger.model.Budget;
 import com.midnight.midnightledger.model.FinancialGoal;
 import com.midnight.midnightledger.model.SavingProgress;
 import com.midnight.midnightledger.model.Transaction;
-import com.midnight.midnightledger.model.dto.response.SavingProgressResponse;
 import com.midnight.midnightledger.model.enums.TransactionType;
-import com.midnight.midnightledger.repository.BudgetRepository;
 import com.midnight.midnightledger.repository.FinancialGoalRepository;
 import com.midnight.midnightledger.repository.SavingProgressRepository;
 import com.midnight.midnightledger.repository.TransactionRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,27 +19,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FinancialGoalService {
 
-    @Autowired
-    FinancialGoalRepository financialGoalRepository;
+    private final FinancialGoalRepository financialGoalRepository;
 
-    @Autowired
-    SavingProgressRepository savingProgressRepository;
+    private final SavingProgressRepository savingProgressRepository;
 
-    @Autowired
-    TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
-    public void saveFinancialGoal(FinancialGoal financialGoal){
+    public void saveFinancialGoal(FinancialGoal financialGoal, Long accountId){
+        financialGoal.setAccountId(accountId);
         financialGoalRepository.save(financialGoal);
     }
 
-    public List<FinancialGoal> getAllFinancialGoal(){
-        return financialGoalRepository.findAll();
+    public List<FinancialGoal> getAllFinancialGoal(Long accountId){
+        return financialGoalRepository.findByAccountId(accountId).get();
     }
 
-    public  Map<String, Map<String, BigDecimal>> getAllFinancialGoalTotal(){
-        List<FinancialGoal> financialGoals = financialGoalRepository.findAll();
+    public  Map<String, Map<String, BigDecimal>> getAllFinancialGoalTotal(Long accountId){
+        List<FinancialGoal> financialGoals = financialGoalRepository.findByAccountId(accountId).get();
 
         return financialGoals.stream()
                 .collect(Collectors.toMap(
@@ -56,7 +53,7 @@ public class FinancialGoalService {
     }
 
     @Transactional
-    public boolean updateCurrentAmount(Long goalId, BigDecimal currentAmount) {
+    public boolean updateCurrentAmount(Long goalId, BigDecimal currentAmount, Long accountId) {
         FinancialGoal goal = financialGoalRepository.findById(goalId).orElse(null);
         if (goal != null) {
 

@@ -1,7 +1,9 @@
 package com.midnight.midnightledger.controller;
 
 import com.midnight.midnightledger.model.RecurringTransaction;
+import com.midnight.midnightledger.model.User;
 import com.midnight.midnightledger.service.RecurringTransactionService;
+import com.midnight.midnightledger.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/recurring-transactions")
-@CrossOrigin(origins = "http://localhost:4200")
 public class RecurringTransactionController {
 
     @Autowired
@@ -18,12 +19,14 @@ public class RecurringTransactionController {
 
     @PostMapping
     public void addRecurringTransaction(@RequestBody RecurringTransaction transaction) {
-        recurringTransactionService.saveRecurrentTransaction(transaction);
+        Long accountId = SecurityUtils.getCurrentUser().getId();
+        recurringTransactionService.saveRecurrentTransaction(transaction, accountId);
     }
 
     @GetMapping
     public List<RecurringTransaction> getAllTransactions() {
-        return recurringTransactionService.getALlRecurringTransaction();
+        Long accountId = SecurityUtils.getCurrentUser().getId();
+        return recurringTransactionService.getALlRecurringTransaction(accountId);
     }
 
     @PutMapping("/{id}")

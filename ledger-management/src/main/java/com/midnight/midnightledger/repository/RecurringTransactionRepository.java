@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 
 @Repository
@@ -17,4 +18,6 @@ public interface RecurringTransactionRepository extends JpaRepository<RecurringT
 
     @Query("SELECT rt FROM RecurringTransaction rt WHERE rt.active = true AND rt.nextExecutionDate = :today")
     List<RecurringTransaction> findAllByActiveTrueAndNextExecutionDateEquals(@Param("today") LocalDate today);
+
+    List<RecurringTransaction> findAllByAccountId(Long accountId);
 }

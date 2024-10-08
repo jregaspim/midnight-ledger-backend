@@ -12,11 +12,20 @@ import java.util.Optional;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    Optional<List<Transaction>> findByTransactionType(TransactionType transactionType);
 
-    @Query("SELECT t FROM Transaction t WHERE YEAR(t.transactionDate) = :year")
-    List<Transaction> findByYear(@Param("year") int year);
+    Optional<List<Transaction>> findByTransactionTypeAndAccountId(TransactionType transactionType, Long accountId);
 
-    @Query("SELECT t FROM Transaction t WHERE t.transactionType = :transactionType AND YEAR(t.transactionDate) = :year AND MONTH(t.transactionDate) = :month")
-    List<Transaction> findByTransactionTypeYearAndMonth(@Param("transactionType") TransactionType transactionType, @Param("year") int year, @Param("month") int month);
+    @Query("SELECT t FROM Transaction t WHERE YEAR(t.transactionDate) = :year AND t.accountId = :accountId")
+    List<Transaction> findByYearAndAccountId(@Param("year") int year, @Param("accountId") Long accountId);
+
+    @Query("SELECT t FROM Transaction t WHERE t.transactionType = :transactionType AND YEAR(t.transactionDate) = :year AND MONTH(t.transactionDate) = :month AND t.accountId = :accountId")
+    List<Transaction> findByTransactionTypeYearAndMonthAndAccountId(
+            @Param("transactionType") TransactionType transactionType,
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("accountId") Long accountId
+    );
+
+    List<Transaction> findAllByAccountId(Long accountId);
+    Optional<List<Transaction>> findByCategoryAndAccountId(String category, Long accountId);
 }
