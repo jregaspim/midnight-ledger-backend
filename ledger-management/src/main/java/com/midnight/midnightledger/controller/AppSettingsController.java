@@ -1,7 +1,6 @@
 package com.midnight.midnightledger.controller;
 
 import com.midnight.midnightledger.model.AppSettings;
-import com.midnight.midnightledger.model.User;
 import com.midnight.midnightledger.service.AppSettingsService;
 import com.midnight.midnightledger.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -19,26 +18,24 @@ public class AppSettingsController {
 
     @GetMapping
     public ResponseEntity<AppSettings> getAppSettings() {
-        User currentUser = SecurityUtils.getCurrentUser();
-
-        log.info(String.valueOf(currentUser));
-        if (currentUser != null) {
-            return ResponseEntity.ok(appSettingsService.getAppSettings(currentUser.getId()));
-        }
-
-        return ResponseEntity.status(401).build();
+        return SecurityUtils.getCurrentUser()
+                .map(user -> {
+                    log.info("Fetching settings for user: {}", user.getUsername());
+                    AppSettings appSettings = appSettingsService.getAppSettings(user.getId());
+                    return ResponseEntity.ok(appSettings);
+                })
+                .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
     @PostMapping
     public ResponseEntity<Void> saveAppSettings(@RequestBody AppSettings appSettings) {
-        User currentUser = SecurityUtils.getCurrentUser();
-
-        if (currentUser != null) {
-            appSettings.setAccountId(currentUser.getId());
-            appSettingsService.saveAppSettings(appSettings);
-            return ResponseEntity.status(201).build();
-        }
-
-        return ResponseEntity.status(401).build();
+        return SecurityUtils.getCurrentUser()
+                .map(user -> {
+                    appSettings.setAccountId(user.getId());
+                    appSettingsService.saveAppSettings(appSettings);
+                    log.info("Settings saved for user: {}", user.getUsername());
+                    return ResponseEntity.status(201).<Void>build();
+                })
+                .orElseGet(() -> ResponseEntity.status(401).<Void>build());
     }
 }

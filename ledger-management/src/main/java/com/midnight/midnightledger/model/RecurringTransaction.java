@@ -5,24 +5,23 @@ import com.midnight.midnightledger.model.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "recurring_transaction")
-public class RecurringTransaction{
+public class RecurringTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "transaction_name", nullable = false)
     private String transactionName;
 
     @Column(name = "account_id", nullable = false)
@@ -31,8 +30,8 @@ public class RecurringTransaction{
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type", nullable = false)
     private TransactionType transactionType;  // e.g., INCOME, EXPENSES
 
     @Column(nullable = false)
@@ -47,10 +46,12 @@ public class RecurringTransaction{
     @Enumerated(EnumType.STRING)
     private RecurrenceType recurrenceType;
 
+    @Column(name = "start_date")
     private LocalDate startDate;
 
+    @Column(name = "next_execution_date")
     private LocalDate nextExecutionDate;
 
-    private boolean active;
-
+    @Column(nullable = false)
+    private boolean active = true; // Default to active
 }

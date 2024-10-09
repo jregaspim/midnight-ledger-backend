@@ -16,31 +16,26 @@ public class AppSettingsService {
     private final AppSettingsRepository appSettingsRepository;
 
     public void saveAppSettings(AppSettings appSettings) {
-        Optional<AppSettings> oldSettings = appSettingsRepository.findByAccountId(appSettings.getAccountId());
-        if(oldSettings.isPresent()) {
-            oldSettings.get().setCurrency(appSettings.getCurrency());
-            oldSettings.get().setNotificationPreferences(appSettings.getNotificationPreferences());
-            appSettingsRepository.save(oldSettings.get());
-        }
+        appSettingsRepository.findByAccountId(appSettings.getAccountId()).ifPresentOrElse(
+                oldSettings -> {
+                    oldSettings.setCurrency(appSettings.getCurrency());
+                    oldSettings.setNotificationPreferences(appSettings.isNotificationPreferences());
+                    appSettingsRepository.save(oldSettings);
+                    log.info("Updated settings for account ID: {}", appSettings.getAccountId());
+                },
+                () -> {
+                    log.warn("No existing settings found for account ID: {}", appSettings.getAccountId());
+                }
+        );
     }
 
     public AppSettings getAppSettings(Long accountId) {
-
-        Optional<AppSettings> appSettings = appSettingsRepository.findByAccountId(accountId);
-
-        if(appSettings.isEmpty()) {
-            AppSettings newSettings = AppSettings.builder()
-                    .accountId(accountId)
-                    .currency("₱")
-                    .notificationPreferences(false)
-                    .build();
-
-            appSettingsRepository.save(newSettings);
-
-            return newSettings;
-        }
-
-        return appSettings.get();
+        return appSettingsRepository.findByAccountId(accountId)
+                .orElseGet(() -> {
+                    AppSettings newSettings = new AppSettings(accountId, "₱", false);
+                    appSettingsRepository.save(newSettings);
+                    log.info("Created new settings for account ID: {}", accountId);
+                    return newSettings;
+                });
     }
-
 }

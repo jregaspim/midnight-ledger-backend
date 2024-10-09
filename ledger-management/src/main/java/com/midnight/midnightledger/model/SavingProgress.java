@@ -22,12 +22,14 @@ public class SavingProgress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDate dateAdded;
+    @Column(name = "date_added", nullable = false)
+    private LocalDate dateAdded = LocalDate.now();
 
+    @Column(nullable = false)
     private BigDecimal amount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "financial_goal_id")
+    @JoinColumn(name = "financial_goal_id", nullable = false)
     @JsonIgnore
     private FinancialGoal financialGoal;
 

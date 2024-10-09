@@ -22,6 +22,8 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
 
+    private static final int MONTHS_IN_YEAR = 12;
+
     @Transactional
     public void saveTransaction(TransactionRequest transactionRequest, Long accountId) {
         Transaction transaction = Transaction.builder()
@@ -34,19 +36,12 @@ public class TransactionService {
                 .build();
 
         transactionRepository.save(transaction);
-
-        Optional<Budget> budgetOptional = budgetRepository.findByCategoryAndAccountId(transactionRequest.getCategory(), accountId);
-
-        if (budgetOptional.isPresent()) {
-            Budget budget = budgetOptional.get();
-            BigDecimal amountUsed = budget.getAmountUsed() != null ? budget.getAmountUsed() : BigDecimal.ZERO;
-            budget.setAmountUsed(amountUsed.add(transactionRequest.getAmount()));
-            budgetRepository.save(budget);
-        }
+        updateBudget(transactionRequest.getCategory(), transactionRequest.getAmount(), accountId, true);
     }
 
     public List<Transaction> getAllTransactionByTransactionType(TransactionType transactionType, Long accountId) {
-        return transactionRepository.findByTransactionTypeAndAccountId(transactionType, accountId).orElseThrow();
+        return transactionRepository.findByTransactionTypeAndAccountId(transactionType, accountId)
+                .orElseThrow(() -> new NoSuchElementException("No transactions found for the given type."));
     }
 
     public List<Transaction> getAllTransaction(Long accountId) {
@@ -54,25 +49,22 @@ public class TransactionService {
     }
 
     public Map<String, BigDecimal[]> getTransactionsByYear(int year, Long accountId) {
-        BigDecimal[] monthlyIncome = new BigDecimal[12];
-        BigDecimal[] monthlyExpenses = new BigDecimal[12];
-        BigDecimal[] monthlySavings = new BigDecimal[12];
+        BigDecimal[] monthlyIncome = new BigDecimal[MONTHS_IN_YEAR];
+        BigDecimal[] monthlyExpenses = new BigDecimal[MONTHS_IN_YEAR];
+        BigDecimal[] monthlySavings = new BigDecimal[MONTHS_IN_YEAR];
 
         Arrays.fill(monthlyIncome, BigDecimal.ZERO);
         Arrays.fill(monthlyExpenses, BigDecimal.ZERO);
         Arrays.fill(monthlySavings, BigDecimal.ZERO);
 
         List<Transaction> transactions = transactionRepository.findByYearAndAccountId(year, accountId);
-
         transactions.forEach(transaction -> {
             int monthIndex = transaction.getTransactionDate().getMonthValue() - 1; // 0-based index
 
-            if (transaction.getTransactionType() == TransactionType.INCOME) {
-                monthlyIncome[monthIndex] = monthlyIncome[monthIndex].add(transaction.getAmount());
-            } else if (transaction.getTransactionType() == TransactionType.EXPENSES) {
-                monthlyExpenses[monthIndex] = monthlyExpenses[monthIndex].add(transaction.getAmount());
-            } else if (transaction.getTransactionType() == TransactionType.SAVINGS) {
-                monthlySavings[monthIndex] = monthlySavings[monthIndex].add(transaction.getAmount());
+            switch (transaction.getTransactionType()) {
+                case INCOME -> monthlyIncome[monthIndex] = monthlyIncome[monthIndex].add(transaction.getAmount());
+                case EXPENSES -> monthlyExpenses[monthIndex] = monthlyExpenses[monthIndex].add(transaction.getAmount());
+                case SAVINGS -> monthlySavings[monthIndex] = monthlySavings[monthIndex].add(transaction.getAmount());
             }
         });
 
@@ -87,51 +79,52 @@ public class TransactionService {
         TransactionType type = getTransactionType(transactionType);
         List<Transaction> transactions = transactionRepository.findByTransactionTypeYearAndMonthAndAccountId(type, year, month, accountId);
 
-        if (type == TransactionType.EXPENSES) {
-            return updateMonthlyDataValue(ExpenseCategory.getExpenseMap(), transactions);
-        } else if (type == TransactionType.INCOME) {
-            return updateMonthlyDataValue(IncomeCategory.getIncomeMap(), transactions);
-        }
-
-        return Map.of(); // return empty map instead of null
+        return type == TransactionType.EXPENSES ?
+                updateMonthlyDataValue(ExpenseCategory.getExpenseMap(), transactions) :
+                type == TransactionType.INCOME ?
+                        updateMonthlyDataValue(IncomeCategory.getIncomeMap(), transactions) :
+                        Collections.emptyMap(); // return empty map instead of null
     }
 
     public Map<String, BigDecimal> getTotalPerCategories(String transactionType, Long accountId) {
-        List<Transaction> transactions = transactionRepository.findByTransactionTypeAndAccountId(getTransactionType(transactionType), accountId).orElseThrow();
+        List<Transaction> transactions = transactionRepository.findByTransactionTypeAndAccountId(getTransactionType(transactionType), accountId)
+                .orElseThrow(() -> new NoSuchElementException("No transactions found for the given type."));
 
         Map<String, BigDecimal> categoryTotals = ExpenseCategory.getExpenseMap();
 
-        for (Transaction transaction : transactions) {
-            categoryTotals.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add);
-        }
+        transactions.forEach(transaction ->
+                categoryTotals.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add)
+        );
 
         return categoryTotals;
     }
 
     private Map<String, BigDecimal> updateMonthlyDataValue(Map<String, BigDecimal> monthlyMap, List<Transaction> transactions) {
-        for (Transaction transaction : transactions) {
-            monthlyMap.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add);
-        }
+        transactions.forEach(transaction ->
+                monthlyMap.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add)
+        );
         return monthlyMap;
     }
 
-
     @Transactional
-    public void deleteTransaction(Long id, Long accountId) {
-
+    public Boolean deleteTransaction(Long id, Long accountId) {
         Optional<Transaction> transaction = transactionRepository.findById(id);
 
-        if(transaction.isPresent()) {
+        if (transaction.isPresent()) {
             transactionRepository.deleteById(id);
-            Optional<Budget> budgetOptional = budgetRepository.findByCategoryAndAccountId(transaction.get().getCategory(), accountId);
-
-            if (budgetOptional.isPresent()) {
-                Budget budget = budgetOptional.get();
-                BigDecimal amountUsed = budget.getAmountUsed() != null ? budget.getAmountUsed() : BigDecimal.ZERO;
-                budget.setAmountUsed(amountUsed.subtract(transaction.get().getAmount()));
-                budgetRepository.save(budget);
-            }
+            updateBudget(transaction.get().getCategory(), transaction.get().getAmount(), accountId, false);
+            return true;
         }
+
+        return false;
+    }
+
+    private void updateBudget(String category, BigDecimal amount, Long accountId, boolean isAddition) {
+        budgetRepository.findByCategoryAndAccountId(category, accountId).ifPresent(budget -> {
+            BigDecimal amountUsed = budget.getAmountUsed() != null ? budget.getAmountUsed() : BigDecimal.ZERO;
+            budget.setAmountUsed(isAddition ? amountUsed.add(amount) : amountUsed.subtract(amount));
+            budgetRepository.save(budget);
+        });
     }
 
     private TransactionType getTransactionType(String transactionType) {

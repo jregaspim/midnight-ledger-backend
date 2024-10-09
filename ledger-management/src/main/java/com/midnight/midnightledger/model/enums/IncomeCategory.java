@@ -10,11 +10,9 @@ public enum IncomeCategory {
 
     private final String displayName;
 
-    // Constructor to assign custom string values
     IncomeCategory(String displayName) {
         this.displayName = displayName;
     }
-
 
     public static Map<String, BigDecimal> getIncomeMap() {
         Map<String, BigDecimal> incomeMap = new HashMap<>();

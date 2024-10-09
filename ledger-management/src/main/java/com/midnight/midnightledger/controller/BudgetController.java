@@ -1,12 +1,11 @@
 package com.midnight.midnightledger.controller;
 
 import com.midnight.midnightledger.model.Budget;
-import com.midnight.midnightledger.model.User;
 import com.midnight.midnightledger.service.BudgetService;
 import com.midnight.midnightledger.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,37 +21,39 @@ public class BudgetController {
 
     @GetMapping
     public ResponseEntity<List<Budget>> getAllBudget() {
-        User currentUser = SecurityUtils.getCurrentUser();
-
-        if (currentUser != null) {
-            return ResponseEntity.ok(budgetService.getAllBudget(currentUser.getId()));
-        }
-        return ResponseEntity.status(401).build();
+        return SecurityUtils.getCurrentUser()
+                .map(user -> {
+                    log.info("Fetching budgets for user: {}", user.getUsername());
+                    List<Budget> budgets = budgetService.getAllBudgets(user.getId());
+                    return ResponseEntity.ok(budgets);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).<List<Budget>>build());
     }
 
     @PostMapping
-    public ResponseEntity<Void> saveBudget(@RequestBody Budget budget){
-        User currentUser = SecurityUtils.getCurrentUser();
-
-        if (currentUser != null) {
-            budget.setAccountId(currentUser.getId());
-            budgetService.saveBudget(budget);
-            return ResponseEntity.status(201).build();
-        }
-
-        return ResponseEntity.status(401).build();
+    public ResponseEntity<Void> saveBudget(@RequestBody Budget budget) {
+        return SecurityUtils.getCurrentUser()
+                .map(user -> {
+                    budget.setAccountId(user.getId());
+                    budgetService.saveBudget(budget);
+                    log.info("Budget saved for user: {}", user.getUsername());
+                    return ResponseEntity.status(HttpStatus.CREATED).<Void>build();
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).<Void>build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBudget(@PathVariable Long id) {
-        User currentUser = SecurityUtils.getCurrentUser();
-
-        if (currentUser != null) {
-            budgetService.deleteTransaction(id);
-            return ResponseEntity.status(200).build();
-        }
-
-        return ResponseEntity.status(401).build();
+        return SecurityUtils.getCurrentUser()
+                .map(user -> {
+                    log.info("Deleting budget with ID: {} for user: {}", id, user.getUsername());
+                    boolean deleted = budgetService.deleteBudget(id);
+                    if (deleted) {
+                        return ResponseEntity.status(HttpStatus.NO_CONTENT).<Void>build();
+                    } else {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).<Void>build();
+                    }
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).<Void>build());
     }
-
 }

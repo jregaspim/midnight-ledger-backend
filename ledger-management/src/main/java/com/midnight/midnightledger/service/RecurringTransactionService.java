@@ -3,29 +3,25 @@ package com.midnight.midnightledger.service;
 import com.midnight.midnightledger.exception.TransactionNotFoundException;
 import com.midnight.midnightledger.model.RecurringTransaction;
 import com.midnight.midnightledger.model.Transaction;
-import com.midnight.midnightledger.model.User;
+import com.midnight.midnightledger.model.enums.RecurrenceType;
 import com.midnight.midnightledger.model.enums.TransactionType;
 import com.midnight.midnightledger.repository.RecurringTransactionRepository;
 import com.midnight.midnightledger.repository.TransactionRepository;
-import com.midnight.midnightledger.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class RecurringTransactionService {
 
     private final RecurringTransactionRepository recurringTransactionRepository;
-
     private final TransactionRepository transactionRepository;
 
-
-    public List<RecurringTransaction> getALlRecurringTransaction(Long accountId) {
+    public List<RecurringTransaction> getAllRecurringTransactions(Long accountId) {
         return recurringTransactionRepository.findAllByAccountId(accountId);
     }
 
@@ -35,28 +31,31 @@ public class RecurringTransactionService {
     }
 
     public void updateNextExecutionDate(RecurringTransaction transaction) {
-        LocalDate nextExecutionDate = transaction.getNextExecutionDate();
-
-        switch (transaction.getRecurrenceType()) {
-            case DAILY:
-                nextExecutionDate = nextExecutionDate.plusDays(1);
-                break;
-            case WEEKLY:
-                nextExecutionDate = nextExecutionDate.plusWeeks(1);
-                break;
-            case MONTHLY:
-                nextExecutionDate = nextExecutionDate.plusMonths(1);
-                break;
-        }
-
-        transaction.setNextExecutionDate(nextExecutionDate);
+        transaction.setNextExecutionDate(calculateNextExecutionDate(transaction.getNextExecutionDate(), transaction.getRecurrenceType()));
         recurringTransactionRepository.save(transaction);
     }
 
-    public void processTransaction(RecurringTransaction recurringTransaction) {
-        System.out.println("Processing transaction: " + recurringTransaction.getTransactionName());
+    private LocalDate calculateNextExecutionDate(LocalDate currentDate, RecurrenceType recurrenceType) {
+        switch (recurrenceType) {
+            case DAILY:
+                return currentDate.plusDays(1);
+            case WEEKLY:
+                return currentDate.plusWeeks(1);
+            case MONTHLY:
+                return currentDate.plusMonths(1);
+            default:
+                throw new IllegalArgumentException("Unsupported recurrence type: " + recurrenceType);
+        }
+    }
 
-        Transaction transaction = Transaction.builder()
+    public void processTransaction(RecurringTransaction recurringTransaction) {
+        Transaction transaction = createTransactionFromRecurring(recurringTransaction);
+        transactionRepository.save(transaction);
+        updateNextExecutionDate(recurringTransaction);
+    }
+
+    private Transaction createTransactionFromRecurring(RecurringTransaction recurringTransaction) {
+        return Transaction.builder()
                 .accountId(recurringTransaction.getAccountId())
                 .amount(recurringTransaction.getAmount())
                 .transactionType(recurringTransaction.getTransactionType())
@@ -64,48 +63,36 @@ public class RecurringTransactionService {
                 .transactionDate(recurringTransaction.getTransactionDate())
                 .description(recurringTransaction.getDescription() + " (Recurring)")
                 .build();
-
-        transactionRepository.save(transaction);
-
-        updateNextExecutionDate(recurringTransaction);
     }
 
-
-    public void saveRecurrentTransaction(RecurringTransaction transaction, Long accountId) {
-
+    public void saveRecurringTransaction(RecurringTransaction transaction, Long accountId) {
         transaction.setAccountId(accountId);
         transaction.setTransactionType(TransactionType.EXPENSES);
         transaction.setTransactionDate(LocalDate.now());
         transaction.setStartDate(LocalDate.now());
         transaction.setActive(true);
-        switch (transaction.getRecurrenceType()) {
-            case DAILY:
-                transaction.setNextExecutionDate(LocalDate.now().plusDays(1));
-                break;
-            case WEEKLY:
-                transaction.setNextExecutionDate(LocalDate.now().plusWeeks(1));
-                break;
-            case MONTHLY:
-                transaction.setNextExecutionDate(LocalDate.now().plusMonths(1));
-                break;
-        }
+        transaction.setNextExecutionDate(calculateNextExecutionDate(LocalDate.now(), transaction.getRecurrenceType()));
 
         recurringTransactionRepository.save(transaction);
     }
 
-    public RecurringTransaction update(Long id, RecurringTransaction transaction) {
-        RecurringTransaction existingTransaction = recurringTransactionRepository.findById(id)
-                .orElseThrow(() -> new TransactionNotFoundException(id));
+    public Optional<RecurringTransaction> update(RecurringTransaction transaction) {
+        RecurringTransaction existingTransaction = recurringTransactionRepository.findById(transaction.getId())
+                .orElseThrow(() -> new TransactionNotFoundException(transaction.getId()));
 
         existingTransaction.setTransactionName(transaction.getTransactionName());
         existingTransaction.setAmount(transaction.getAmount());
         existingTransaction.setRecurrenceType(transaction.getRecurrenceType());
         existingTransaction.setNextExecutionDate(transaction.getNextExecutionDate());
 
-        return recurringTransactionRepository.save(existingTransaction);
+        return Optional.of(recurringTransactionRepository.save(existingTransaction));
     }
 
-    public void delete(Long id) {
-        recurringTransactionRepository.deleteById(id);
+    public boolean delete(Long id) {
+        if (recurringTransactionRepository.existsById(id)) {
+            recurringTransactionRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }

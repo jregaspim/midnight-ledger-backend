@@ -1,6 +1,5 @@
 package com.midnight.midnightledger.model;
 
-import com.midnight.midnightledger.model.enums.AppTheme;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,10 +18,18 @@ public class AppSettings {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "account_id", nullable = false)
     private Long accountId;
 
-    private Boolean notificationPreferences;
+    @Column(name = "notification_preferences")
+    private boolean notificationPreferences;
 
+    @Column(nullable = false)
     private String currency;
 
+    public AppSettings(Long accountId, String currency, boolean notificationPreferences) {
+        this.accountId = accountId;
+        this.currency = currency;
+        this.notificationPreferences = notificationPreferences;
+    }
 }
